@@ -1,0 +1,192 @@
+---
+title: "Capstone_1"
+author: "Amadi Chievu"
+date: "2/27/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+**Case Problem**
+
+This a solution to the capstone project on the Google Analytics Course on Coursera.
+
+You are a junior data analyst working in the marketing analyst team at Cyclistic, a bike-share company in Chicago. The director of marketing believes the company's future success depends on maximizing the number of annual memberships. Therefore, your team wants to understand how casual riders and annual members use Cyclistic bikes differently. From these insights, your team will design a new marketing strategy to convert casual riders into annual members. But first, Cyclistic executives must approve your recommendations, so they must be backed up with compelling data insights and professional data visualizations...........
+
+The data can be accessed using the link below:
+
+<https://divvy-tripdata.s3.amazonaws.com/index.html>
+
+This analysis covers a period of 12 months, from February 2021 to January 2022. I downloaded the files to my pc and extracted them. I loaded the required R libraries, imported the files to R, and did a little cleaning by replacing empty cells with NA
+
+```{r step_1}
+library(scales)
+library(kableExtra)
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+library(tidyverse)
+library(tidyr)
+library(ggthemes)
+```
+
+Then importing the csv files
+
+```{r step_2}
+feb_21_data = read.csv("202102-divvy-tripdata.csv") #import csv
+feb_21_data[feb_21_data == "" | feb_21_data == " "] <- NA #replace empty cells with NA
+march_21_data = read.csv("202103-divvy-tripdata.csv")#import csv
+march_21_data[march_21_data == "" | march_21_data == " "] <- NA  #replace empty cells with NA
+april_21_data = read.csv("202104-divvy-tripdata.csv")#import csv
+april_21_data[april_21_data == "" | april_21_data == " "] <- NA  #replace empty cells with NA
+may_21_data = read.csv("202105-divvy-tripdata.csv") #import csv
+may_21_data[may_21_data == "" | may_21_data == " "] <- NA  #replace empty cells with NA
+june_21_data = read.csv("202106-divvy-tripdata.csv")#import csv
+june_21_data[june_21_data == "" | june_21_data == " "] <- NA   #replace empty cells with NA
+july_21_data = read.csv("202107-divvy-tripdata.csv")#import csv
+july_21_data[july_21_data == "" | july_21_data == " "] <- NA   #replace empty cells with NA
+august_21_data = read.csv("202108-divvy-tripdata.csv")#import csv
+august_21_data[august_21_data == "" | august_21_data == " "] <- NA   #replace empty cells with NA
+sept_21_data = read.csv("202109-divvy-tripdata.csv")#import csv
+sept_21_data[sept_21_data == "" | sept_21_data == " "] <- NA   #replace empty cells with NA
+oct_21_data = read.csv("202110-divvy-tripdata.csv")#import csv
+oct_21_data[oct_21_data == "" | oct_21_data == " "] <- NA   #replace empty cells with NA
+nov_21_data = read.csv("202111-divvy-tripdata.csv")#import csv
+nov_21_data[nov_21_data == "" | nov_21_data == " "] <- NA   #replace empty cells with NA
+dec_21_data = read.csv("202112-divvy-tripdata.csv")#import csv
+dec_21_data[dec_21_data == "" | dec_21_data == " "] <- NA   #replace empty cells with NA
+jan_22_data = read.csv("202201-divvy-tripdata.csv")#import csv
+jan_22_data[jan_22_data == "" | jan_22_data == " "] <- NA   #replace empty cells with NA
+```
+
+Then combining the data sets into a single data frame object
+
+```{r step_3}
+all_datasets = rbind(feb_21_data,march_21_data,april_21_data,may_21_data,june_21_data
+                     ,july_21_data,august_21_data,sept_21_data,oct_21_data,nov_21_data
+                     ,dec_21_data,jan_22_data)
+use_data = all_datasets
+```
+
+I took a glimpse to have a visual inspection of the data
+
+```{r step_4}
+head(use_data)
+```
+
+I took note that the columns that contain the dates appear as char. I tried to see if there are difference between the two membership classes in terms of seasonality
+
+```{r step_5}
+data_set_ = mutate(all_datasets, start_time = ymd_hms(started_at)) %>% 
+  mutate(end_time = ymd_hms(ended_at)) %>% 
+  mutate(start_month = round_date(start_time, "month"))
+## I checked if there is seasonality among both categories
+xy = data_set_ %>% 
+  group_by(start_month)%>% 
+  count(member_casual) 
+```
+
+```{r seasonality, echo=FALSE}
+gg = ggplot(xy, mapping = aes(x = start_month, y =n,color = member_casual))+geom_line( size = 1.5) + labs(title = "Seasonlity in Ride Orders among Different Membership", 
+                               x = "Month", y = "No of trips") 
+gg = gg + scale_y_continuous(labels = comma)
+plot(gg)
+```
+
+From the above, there are more of member rides except for the months around summer (July to August). This is showing that possible casual member order rides for leisure rather than for work or daily activities.
+
+In order to establish this hypothesis, I had to do a further investigation to see the differences in the order behavior for the different days of the week
+
+```{r step_6}
+use_data = all_datasets
+data_set_ = data_set_ %>% 
+  mutate(day_of_week = wday(start_time))
+xy = data_set_ %>% 
+  group_by(day_of_week)%>% 
+  count(member_casual) 
+```
+
+```{r day_week, echo=FALSE}
+ggp = ggplot(xy, mapping = aes(x = day_of_week, y =n, colour = member_casual))+geom_line(size = 1.5) + labs(title = "How Different Members make Orders in a week", subtitle = '1 = Sunday, 7 = Saturday', x = "Day of the week", y = "No of trips")
+ggp = ggp + scale_y_continuous(labels = comma)
+
+plot(ggp)
+```
+
+The number of rides by casual members tend to spike during the weekends but decline substantially during the week days. This is unlike the member where the number of trips remain relatively constant. This further validates that casual members make use of the bikes for leisure.
+
+I tried to check if there are any differences in the time of the day when the two different membership make order for trips
+
+```{r step_7}
+use_data = all_datasets
+data_set_ = data_set_ %>% 
+  mutate(hour_of = hour(start_time))
+xy = data_set_ %>% 
+  group_by(hour_of)%>% 
+  count(member_casual) 
+```
+
+```{r time_day, echo=FALSE}
+ggp = ggplot(xy, mapping = aes(x = hour_of, y =n, colour = member_casual))+geom_line(size = 1.5) + labs(title = "How Different Members make Orders in a given Day",  x = "Hour of the day", y = "No of trips")
+
+ggp = ggp + scale_y_continuous(labels = comma)
+
+plot(ggp)
+```
+
+There is no noticeable difference between the two different membership.
+
+I tried to see the average duration of rides between the two different types of membership
+
+```{r step_8}
+df = all_datasets %>%
+  mutate(start_time = ymd_hms(started_at)) %>%
+  mutate(end_time = ymd_hms(ended_at)) %>%
+  mutate(ride_length = as.duration((end_time - start_time)))%>%
+  mutate(ride_length = (ride_length/60)) %>%
+  group_by(member_casual)%>% 
+  summarise(Average_min = mean(ride_length))
+df %>%
+  kbl() %>%
+  kable_styling()
+```
+
+The casual member has average ride duration that is more than double that of the members.
+
+Finally, I checked the busiest stations for both types of membership to see if there are any differences.
+
+The top 10 busiest station for both members are as follow
+
+```{r step_9}
+data_set_ = all_datasets
+## I plotted the result
+xy = data_set_ %>% 
+  filter(!is.na(start_station_name)) %>% 
+  #filter( member_casual == "casual")%>% 
+  group_by(start_station_name)%>% 
+  count(member_casual)%>%
+  arrange(desc(n))%>%
+  head(20)
+  
+xy %>%
+  kbl() %>%
+  kable_styling()
+```
+
+## Conclusion & Recommendations
+
+Casual members use the bikes more for leisure while members use it for work and business. The following strategies can help increase membership subscription from casual members.
+
+1.  A targeted advertisement on travelling and vacation sites
+
+2.  A targeted advertisement on the busiest stations for the casual members
+
+3.  Possibly a different membership class that would suit them could be created. This could be membership status that spans for half of the year rather than a whole year
